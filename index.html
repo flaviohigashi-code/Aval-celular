@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avaliação Pré Anestésica - AnestheMed</title>
+    <style>
+        /* --- CONFIGURAÇÃO GLOBAL DE IMPRESSÃO (RÍGIDA A4 - FOLHA ÚNICA) --- */
+        @page { 
+            size: A4; 
+            margin: 2mm 4mm; 
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 8px;
+            font-size: 11px;
+            line-height: 1.1;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .container {
+            background-color: #fff;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
+
+        /* --- INTERFACE EXCLUSIVA DO CELULAR (TELA) --- */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 4px;
+            margin-bottom: 10px;
+        }
+        .header-logo img { display: block; max-width: 120px; height: auto; }
+        .header-title h2 { margin: 0; font-size: 13px; letter-spacing: 0.5px; color: #1a237e; }
+        .header-contact { text-align: right; font-weight: bold; line-height: 1.1; }
+        .header-contact .loc-name { font-size: 9px; text-transform: uppercase; display: block; }
+        .header-contact .phone-num { font-size: 8px; display: block; color: #555; }
+
+        /* Blocos Estilo Deslizar/Accordion para Tela */
+        .mobile-block {
+            background: #ffffff;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+        .mobile-block-trigger {
+            background: #e9ecef;
+            color: #212529;
+            padding: 10px 12px;
+            font-weight: bold;
+            font-size: 11px;
+            text-transform: uppercase;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            border-bottom: 1px solid #d1d5db;
+        }
+        .mobile-block-trigger::after {
+            content: '▼';
+            font-size: 9px;
+            transition: transform 0.2s;
+        }
+        .mobile-block.active .mobile-block-trigger {
+            background: #1565c0;
+            color: #fff;
+            border-bottom: 1px solid #1565c0;
+        }
+        .mobile-block.active .mobile-block-trigger::after {
+            transform: rotate(180deg);
+        }
+        .mobile-block-content {
+            display: none;
+            padding: 10px 8px;
+        }
+        .mobile-block.active .mobile-block-content {
+            display: block;
+        }
+
+        /* Otimização de toque para inputs e labels no celular */
+        .row { display: flex; flex-wrap: wrap; margin-bottom: 6px; align-items: center; width: 100%; }
+        .form-group { display: flex; align-items: center; margin-bottom: 2px; box-sizing: border-box; }
+        .form-group label { margin-right: 4px; white-space: nowrap; font-weight: bold; }
+        
+        input[type="text"], input[type="number"], textarea {
+            border: none;
+            border-bottom: 1px solid #777;
+            flex-grow: 1;
+            padding: 5px 4px;
+            background: #f8f9fa;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            font-weight: 800 !important;
+            color: #000;
+            border-radius: 4px 4px 0 0;
+        }
+        input[type="text"]:focus, input[type="number"]:focus, textarea:focus {
+            background: #fff;
+            outline: none;
+            border-bottom: 2px solid #1565c0;
+        }
+
+        /* Botões de Checkbox/Radio sempre quadrados por padrão */
+        input[type="radio"], input[type="checkbox"] { display: none; }
+        .btn-check {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 1.5px solid #000;
+            margin-right: 6px;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+            background: #fff;
+            vertical-align: middle;
+            position: relative;
+            border-radius: 3px; /* Mantém quadrado com cantos levemente suavizados no celular */
+        }
+
+        input[type="radio"]:checked + .btn-check::after,
+        input[type="checkbox"]:checked + .btn-check::after {
+            content: "✔";
+            font-family: Arial, sans-serif;
+            font-weight: 900;
+            font-size: 12px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #1565c0;
+        }
+        
+        .row-check-item {
+            display: flex;
+            align-items: center;
+            padding: 6px 4px;
+            border-bottom: 1px solid #edf2f7;
+            font-size: 11px;
+        }
+        .row-check-item label { display: flex; align-items: center; cursor: pointer; margin-right: 8px;}
+
+        /* Grid adaptável para o celular */
+        .grid-3 { display: grid; grid-template-columns: 1fr; gap: 6px; }
+        @media (min-width: 600px) { .grid-3 { grid-template-columns: repeat(3, 1fr); } }
+
+        .sn-header { display: none; } /* Oculto na tela do celular */
+        .med-com-split { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .med-list-cols { display: grid; grid-template-columns: 1fr; gap: 4px; }
+        .med-item { display: flex; align-items: center; background: #f8f9fa; padding: 2px 6px; border-radius: 4px; margin-bottom: 2px; }
+        .med-item span { font-size: 10px; font-weight: bold; margin-right: 6px; color: #777; width: 15px; }
+
+        /* Tamanhos dos inputs */
+        .input-3dig { width: 45px !important; flex-grow: 0 !important; text-align: center; }
+        .input-5dig { width: 65px !important; flex-grow: 0 !important; text-align: center; }
+        .input-6dig { width: 80px !important; flex-grow: 0 !important; text-align: center; }
+
+        /* Exame Físico / Tabelas Mobile */
+        .mobile-table-to-cards { width: 100%; border-collapse: collapse; }
+        .mobile-table-to-cards td { display: block; width: 100% !important; box-sizing: border-box; border: 1px solid #e2e8f0 !important; padding: 6px !important; margin-bottom: 4px; border-radius: 4px; background: #fdfdfd; }
+
+        /* Seção Jejum */
+        .jejum-container-box { background-color: #fff3e0; border: 2px dashed #ffb74d; padding: 10px; border-radius: 6px; }
+        .jejum-destaque { font-weight: 900; color: #e65100; text-transform: uppercase; }
+
+        /* Autocompletes */
+        .autocomplete-items, .autocomplete-carimbo-items {
+            position: absolute; border: 1px solid #cbd5e1; background-color: #fff; z-index: 99;
+            max-height: 150px; overflow-y: auto; box-shadow: 0px 4px 8px rgba(0,0,0,0.15); border-radius: 6px;
+        }
+        .autocomplete-items div, .autocomplete-carimbo-items div { padding: 8px 10px; cursor: pointer; font-size: 12px; color: #333; border-bottom: 1px solid #f1f5f9; }
+        .autocomplete-items div:hover, .autocomplete-carimbo-active { background-color: #e3f2fd !important; color: #0d47a1 !important; font-weight: bold; }
+
+        /* Assinatura e Carimbo Flutuante */
+        .linha-assinatura-interativa {
+            border: none; border-bottom: 1.5px solid #000 !important; width: 100%; padding: 6px 4px;
+            background: #f8f9fa; font-size: 12px; text-align: center; outline: none; border-radius: 4px;
+        }
+        .assinatura-container { display: flex; flex-direction: column; gap: 15px; margin-top: 15px; background: #fafafa; padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0; }
+        .assinatura-box { text-align: center; font-weight: bold; width: 100% !important; }
+        
+        .container-carimbo-flutuante { position: relative; width: 100%; height: 0px; }
+        #o-carimbo {
+            display: none; border: 4px double #0f2a4a; color: #0f2a4a; opacity: 0.85; padding: 4px; 
+            border-radius: 4px; font-family: 'Courier New', monospace; font-weight: bold; text-transform: uppercase; 
+            width: 220px; box-sizing: border-box; position: absolute; bottom: 30px; left: 50%; transform: translate(-50%, 0) rotate(-1deg);
+            background-color: rgba(255, 255, 255, 0.95); pointer-events: none; z-index: 10; text-align: center;
+        }
+        .carimbo-linha-inferior { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 2px; }
+        .mini-logo-real-carimbo { height: 28px; width: auto; object-fit: contain; filter: brightness(0) sepia(1) hue-rotate(190deg) saturate(8) brightness(0.35); }
+
+        /* Painel Fixador de Botões no Rodapé do Celular */
+        .buttons { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; padding: 8px; display: flex; justify-content: space-around; gap: 6px; box-shadow: 0 -4px 10px rgba(0,0,0,0.1); z-index: 100; }
+        .buttons button { flex: 1; padding: 10px 4px; cursor: pointer; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 10px; text-transform: uppercase; }
+        .btn-link { background-color: #ff9800; }
+        .btn-save { background-color: #2e7d32; }
+        .btn-print { background-color: #1565c0; }
+        .btn-print:disabled { background-color: #9e9e9e !important; opacity: 0.6; }
+        
+        .spacer-bottom { height: 60px; }
+
+
+        /* =========================================================================
+           --- FORÇAMENTO ABSOLUTO DE LAYOUT ORIGINAL IMPRESSÃO A4 (FOLHA ÚNICA) ---
+           ========================================================================= */
+        @media print {
+            body { background-color: #fff; padding: 0; margin: 0; font-size: 10px; line-height: 1.05; }
+            .container { border: none; box-shadow: none; width: 100%; padding: 0; margin: 0; max-width: 100%; }
+            .spacer-bottom, .buttons, .autocomplete-items, .autocomplete-carimbo-items { display: none !important; }
+            
+            .mobile-block { border: 1px solid #000 !important; margin-bottom: 2px !important; border-radius: 0 !important; overflow: visible !important; }
+            .mobile-block-trigger { background: #f2f2f2 !important; color: #000 !important; padding: 1px 2px !important; font-size: 9px !important; border-bottom: 1px solid #000 !important; justify-content: center !important; }
+            .mobile-block-trigger::after { display: none !important; }
+            .mobile-block-content { display: block !important; padding: 1px 2px !important; }
+
+            .row { display: flex !important; flex-wrap: wrap !important; margin-bottom: 0px !important; }
+            input[type="text"], input[type="number"], textarea { border: none !important; border-bottom: 1px solid #000 !important; background: transparent !important; padding: 0px 1px !important; font-size: 11.5px !important; font-weight: 800 !important; border-radius: 0 !important;}
+            
+            /* Totalmente quadrado e sem raios de borda na impressão */
+            .btn-check { width: 9px !important; height: 9px !important; border: 1.2px solid #000 !important; margin-right: 2px !important; border-radius: 0 !important; }
+            input[type="radio"] + .btn-check { border-radius: 0 !important; }
+            input[type="radio"]:checked + .btn-check::after, input[type="checkbox"]:checked + .btn-check::after { font-size: 9px !important; color: #000 !important; top: 45%; left: 45%; }
+            
+            .grid-3 { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 0px 4px !important; }
+            .sn-header { display: flex !important; font-weight: bold !important; font-size: 8px !important; margin-bottom: 0px !important; }
+            .sn-header span { width: 12px !important; text-align: center !important; margin-right: 1px !important; }
+            .row-check-item { padding: 0px !important; border: none !important; font-size: 10px !important; }
+            .row-check-item label { margin-right: 0px !important; }
+
+            .med-com-split { display: grid !important; grid-template-columns: 1.1fr 0.9fr !important; gap: 4px !important; }
+            .med-com-split > div:first-child { border-right: 1px solid #000 !important; padding-right: 4px !important; }
+            .med-list-cols { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 1px 4px !important; }
+            .med-item { background: transparent !important; padding: 0 !important; margin-bottom: 0px !important; border-bottom: 1px solid #ccc !important; }
+            .med-item span { font-size: 8px !important; width: 12px !important; margin-right: 2px !important; }
+            .mobile-block-trigger { text-align: center !important; text-transform: uppercase !important; font-size: 9px !important; }
+
+            .mobile-table-to-cards td { display: table-cell !important; width: auto !important; border: 1px solid #999 !important; padding: 1px 3px !important; background: transparent !important; border-radius: 0 !important; margin-bottom: 0 !important; }
+            .mobile-table-to-cards td b { font-size: 8px !important; }
+
+            .jejum-container-box { background-color: #e8e8e8 !important; border: 1.5px solid #555 !important; padding: 1px 3px !important; border-radius: 0 !important; }
+            .jejum-destaque { color: #000 !important; }
+
+            #concl_recom1, #concl_recom2, #concl_recom3, #obs1, #obs2, #obs3, #obs4, #obs5 { margin-top: 2px !important; display: block !important; }
+
+            .assinatura-container { display: flex !important; flex-direction: row !important; justify-content: space-between !important; align-items: flex-start !important; margin-top: 35px !important; background: transparent !important; padding: 0 !important; border: none !important; gap: 15px !important; }
+            .assinatura-box { text-align: center !important; }
+            .linha-assinatura-interativa { border-bottom: 1.2px solid #000 !important; color: transparent !important; background: transparent !important; padding: 1px 0px !important; }
+            #o-carimbo { display: none; bottom: -6px !important; left: 50% !important; transform: translate(-50%, 0) rotate(-1.5deg) !important; }
+
+            html, body { height: 99%; overflow: hidden; page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body onload="inicializar()">
+
+<div class="container">
+    <form id="avaliacao-form" autocomplete="off">
+        
+        <div class="header">
+            <div class="header-logo"><img src="logo-anesthemed.png" alt="Logo AnestheMed"></div>
+            <div class="header-title"><h2>AVALIAÇÃO PRÉ ANESTÉSICA</h2></div>
+            <div class="header-contact"><span class="loc-name">Inovare</span><span class="phone-num">(42) 3026-2640</span></div>
+        </div>
+
+        <div class="mobile-block active" id="b1">
+            <div class="mobile-block-trigger" onclick="toggleBloco('b1')">Dados do Paciente</div>
+            <div class="mobile-block-content">
+                <div class="row">
+                    <div class="form-group" style="width: 100%;"><label>Nome:</label><input type="text" id="nome_paciente"></div>
+                </div>
+                <div class="row">
+                    <div class="form-group" style="width: 100%;"><label>CPF:</label><input type="text" id="cpf_paciente"></div>
+                </div>
+                <div class="row">
+                    <div class="form-group" style="width: 100%;"><label>Cirurgia Proposta:</label><input type="text" id="cirurgia_proposta"></div>
+                </div>
+                <div class="row">
+                    <div class="form-group" style="width: 100%;"><label>Idade:</label><input type="number" id="idade_paciente" style="width: 50px; flex-grow:0;"> <span style="font-weight:bold; margin-left:6px;">ANOS</span></div>
+                </div>
+                <div class="row">
+                    <div class="form-group" style="width: 100%;"><label>Cirurgião:</label><input type="text" id="cirurgiao_medico"></div>
+                </div>
+                <div class="row">
+                    <div class="form-group" style="width: 100%;"><label>Convênio:</label><input type="text" id="convenio_paciente"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mobile-block" id="b2">
+            <div class="mobile-block-trigger" onclick="toggleBloco('b2')">Triagem de Sintomas / Doenças</div>
+            <div class="mobile-block-content">
+                <div class="grid-3">
+                    <div>
+                        <div class="sn-header"><span>S</span><span>N</span></div>
+                        <div class="row-check-item"><label><input type="radio" name="d1" id="d1_s" onchange="comentarioAutomatico('01', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d1" id="d1_n" onchange="comentarioAutomatico('01', false)"><span class="btn-check"></span>N</label> 01. Hipertensão arterial</div>
+                        <div class="row-check-item"><label><input type="radio" name="d2" id="d2_s" onchange="comentarioAutomatico('02', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d2" id="d2_n" onchange="comentarioAutomatico('02', false)"><span class="btn-check"></span>N</label> 02. Cardiopatia</div>
+                        <div class="row-check-item"><label><input type="radio" name="d3" id="d3_s" onchange="comentarioAutomatico('03', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d3" id="d3_n" onchange="comentarioAutomatico('03', false)"><span class="btn-check"></span>N</label> 03. Dispnéia / Ortopnéia</div>
+                        <div class="row-check-item"><label><input type="radio" name="d4" id="d4_s" onchange="comentarioAutomatico('04', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d4" id="d4_n" onchange="comentarioAutomatico('04', false)"><span class="btn-check"></span>N</label> 04. Precordialgia</div>
+                        <div class="row-check-item"><label><input type="radio" name="d5" id="d5_s" onchange="comentarioAutomatico('05', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d5" id="d5_n" onchange="comentarioAutomatico('05', false)"><span class="btn-check"></span>N</label> 05. Diabetes mellitus</div>
+                        <div class="row-check-item"><label><input type="radio" name="d6" id="d6_s" onchange="comentarioAutomatico('06', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d6" id="d6_n" onchange="comentarioAutomatico('06', false)"><span class="btn-check"></span>N</label> 06. Outras endócrinas</div>
+                        <div class="row-check-item"><label><input type="radio" name="d7" id="d7_s" onchange="comentarioAutomatico('07', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d7" id="d7_n" onchange="comentarioAutomatico('07', false)"><span class="btn-check"></span>N</label> 07. Pneumopatia</div>
+                        <div class="row-check-item"><label><input type="radio" name="d8" id="d8_s" onchange="comentarioAutomatico('08', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d8" id="d8_n" onchange="comentarioAutomatico('08', false)"><span class="btn-check"></span>N</label> 08. Tabagismo (tempo/qtd)</div>
+                    </div>
+                    <div>
+                        <div class="sn-header"><span>S</span><span>N</span></div>
+                        <div class="row-check-item"><label><input type="radio" name="d9" id="d9_s" onchange="comentarioAutomatico('09', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d9" id="d9_n" onchange="comentarioAutomatico('09', false)"><span class="btn-check"></span>N</label> 09. Etilismo (quantifique)</div>
+                        <div class="row-check-item"><label><input type="radio" name="d10" id="d10_s" onchange="comentarioAutomatico('10', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d10" id="d10_n" onchange="comentarioAutomatico('10', false)"><span class="btn-check"></span>N</label> 10. Hepatite</div>
+                        <div class="row-check-item"><label><input type="radio" name="d11" id="d11_s" onchange="comentarioAutomatico('11', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d11" id="d11_n" onchange="comentarioAutomatico('11', false)"><span class="btn-check"></span>N</label> 11. Doença Renal</div>
+                        <div class="row-check-item"><label><input type="radio" name="d12" id="d12_s" onchange="comentarioAutomatico('12', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d12" id="d12_n" onchange="comentarioAutomatico('12', false)"><span class="btn-check"></span>N</label> 12. Alergia medicamentosa</div>
+                        <div class="row-check-item"><label><input type="radio" name="d13" id="d13_s" onchange="comentarioAutomatico('13', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d13" id="d13_n" onchange="comentarioAutomatico('13', false)"><span class="btn-check"></span>N</label> 13. Convulsão</div>
+                        <div class="row-check-item"><label><input type="radio" name="d14" id="d14_s" onchange="comentarioAutomatico('14', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d14" id="d14_n" onchange="comentarioAutomatico('14', false)"><span class="btn-check"></span>N</label> 14. Doenças musculares</div>
+                        <div class="row-check-item"><label><input type="radio" name="d15" id="d15_s" onchange="comentarioAutomatico('15', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d15" id="d15_n" onchange="comentarioAutomatico('15', false)"><span class="btn-check"></span>N</label> 15. Sangramento espontâneo</div>
+                        <div class="row-check-item"><label><input type="radio" name="d16" id="d16_s" onchange="comentarioAutomatico('16', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d16" id="d16_n" onchange="comentarioAutomatico('16', false)"><span class="btn-check"></span>N</label> 16. Prótese dentária</div>
+                    </div>
+                    <div>
+                        <div class="sn-header"><span>S</span><span>N</span></div>
+                        <div class="row-check-item"><label><input type="radio" name="d17" id="d17_s" onchange="comentarioAutomatico('17', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d17" id="d17_n" onchange="comentarioAutomatico('17', false)"><span class="btn-check"></span>N</label> 17. Possibilidade gravidez</div>
+                        <div class="row-check-item"><label><input type="radio" name="d18" id="d18_s" onchange="comentarioAutomatico('18', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d18" id="d18_n" onchange="comentarioAutomatico('18', false)"><span class="btn-check"></span>N</label> 18. Anestesias anteriores</div>
+                        <div class="row-check-item"><label><input type="radio" name="d19" id="d19_s" onchange="comentarioAutomatico('19', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d19" id="d19_n" onchange="comentarioAutomatico('19', false)"><span class="btn-check"></span>N</label> 19. Complicações anest.</div>
+                        <div class="row-check-item"><label><input type="radio" name="d20" id="d20_s" onchange="comentarioAutomatico('20', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d20" id="d20_n" onchange="comentarioAutomatico('20', false)"><span class="btn-check"></span>N</label> 20. Outras doenças</div>
+                        <div class="row-check-item"><label><input type="radio" name="d21" id="d21_s" onchange="comentarioAutomatico('21', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d21" id="d21_n" onchange="comentarioAutomatico('21', false)"><span class="btn-check"></span>N</label> 21. Emagrecedores</div>
+                        <div style="font-weight: bold; text-align: center; border-top: 1px solid #ccc; margin: 4px 0; padding-top:2px; font-size: 10px; color:#c62828;">Crianças:</div>
+                        <div class="row-check-item"><label><input type="radio" name="d22" id="d22_s" onchange="comentarioAutomatico('22', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d22" id="d22_n" onchange="comentarioAutomatico('22', false)"><span class="btn-check"></span>N</label> 22. IVAS actual / recente</div>
+                        <div class="row-check-item"><label><input type="radio" name="d23" id="d23_s" onchange="comentarioAutomatico('23', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d23" id="d23_n" onchange="comentarioAutomatico('23', false)"><span class="btn-check"></span>N</label> 23. Diarréia recente</div>
+                        <div class="row-check-item"><label><input type="radio" name="d24" id="d24_s" onchange="comentarioAutomatico('24', this.checked)"><span class="btn-check"></span>S</label><label><input type="radio" name="d24" id="d24_n" onchange="comentarioAutomatico('24', false)"><span class="btn-check"></span>N</label> 24. Nasceu prematuro?</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mobile-block" id="b3">
+            <div class="mobile-block-trigger" onclick="toggleBloco('b3')">Comentários e Medicações</div>
+            <div class="mobile-block-content med-com-split">
+                <div>
+                    <div style="font-weight: bold; margin-bottom:4px;">COMENTAR DADOS POSITIVOS:</div>
+                    <textarea id="comentarios_dados" rows="4" style="width: 100%; resize: none; font-size:12px;"></textarea>
+                </div>
+                <div>
+                    <div style="font-weight: bold; margin-bottom:4px;">MEDICAMENTOS EM USO:</div>
+                    <div class="med-list-cols">
+                        <div>
+                            <div class="med-item"><span>01</span><input type="text" class="med-input" id="m1"></div>
+                            <div class="med-item"><span>02</span><input type="text" class="med-input" id="m2"></div>
+                            <div class="med-item"><span>03</span><input type="text" class="med-input" id="m3"></div>
+                            <div class="med-item"><span>04</span><input type="text" class="med-input" id="m4"></div>
+                            <div class="med-item"><span>05</span><input type="text" class="med-input" id="m5"></div>
+                            <div class="med-item"><span>06</span><input type="text" class="med-input" id="m6"></div>
+                        </div>
+                        <div>
+                            <div class="med-item"><span>07</span><input type="text" class="med-input" id="m7"></div>
+                            <div class="med-item"><span>08</span><input type="text" class="med-input" id="m8"></div>
+                            <div class="med-item"><span>09</span><input type="text" class="med-input" id="m9"></div>
+                            <div class="med-item"><span>10</span><input type="text" class="med-input" id="m10"></div>
+                            <div class="med-item"><span>11</span><input type="text" class="med-input" id="m11"></div>
+                            <div class="med-item"><span>12</span><input type="text" class="med-input" id="m12"></div>
+                        </div>
+                    </div>
+                    <div class="row" style="margin-top: 6px; justify-content: space-between; font-size: 10px; background:#eee; padding:4px; border-radius:4px;">
+                        <div>
+                            <strong>ANTICOAG.:</strong>
+                            <label style="margin-left:4px;"><input type="radio" name="anticoag" id="ac_sim"><span class="btn-check"></span> Sim</label>
+                            <label style="margin-left:4px;"><input type="radio" name="anticoag" id="ac_nao"><span class="btn-check"></span> Não</label>
+                        </div>
+                        <div>
+                            <strong>ALERGIA:</strong>
+                            <label style="margin-left:4px;"><input type="radio" name="alergia" id="al_sim"><span class="btn-check"></span> Sim</label>
+                            <label style="margin-left:4px;"><input type="radio" name="alergia" id="al_nao"><span class="btn-check"></span> Não</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mobile-block" id="b4">
+            <div class="mobile-block-trigger" onclick="toggleBloco('b4')">Exame Físico</div>
+            <div class="mobile-block-content">
+                <table class="mobile-table-to-cards">
+                    <tr>
+                        <td>
+                            <b>PESO:</b>
+                            <input type="text" id="ef_peso" maxlength="3" class="input-3dig"> kg
+                        </td>
+                        <td>
+                            <b>ALTURA:</b>
+                            <input type="text" id="ef_altura" maxlength="3" class="input-3dig"> cm
+                        </td>
+                        <td>
+                            <b>PA:</b>
+                            <input type="text" id="ef_pa" maxlength="7" style="width:65px; text-align:center;"> mmHg
+                        </td>
+                        <td>
+                            <b>FC:</b>
+                            <input type="text" id="ef_fc" maxlength="3" class="input-3dig"> bpm
+                        </td>
+                        <td>
+                            <b>TEMP:</b>
+                            <label><input type="radio" name="temp" id="tp_afebril"><span class="btn-check"></span> Afeb</label>
+                            <label><input type="radio" name="temp" id="tp_febril"><span class="btn-check"></span> Feb</label>
+                        </td>
+                        <td>
+                            <b>Mallampati:</b>
+                            <input type="text" id="ef_mallampati" maxlength="1" style="width:20px !important; text-align:center;">
+                        </td>
+                        <td>
+                            <b>DEM:</b>
+                            <label><input type="radio" name="dem_medida" id="dem_maior"><span class="btn-check"></span> &gt;12</label>
+                            <label><input type="radio" name="dem_medida" id="dem_menor"><span class="btn-check"></span> &lt;12</label>
+                        </td>
+                        <td>
+                            <b>DIF. INTUBAÇÃO:</b>
+                            <label><input type="radio" name="dif_intub" id="df_sim"><span class="btn-check"></span> Sim</label>
+                            <label><input type="radio" name="dif_intub" id="df_nao"><span class="btn-check"></span> Não</label>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="3">
+                            <b>COLUNA VERTEBRAL:</b>
+                            <input type="text" id="ef_coluna" style="width:100%;">
+                        </td>
+                        <td colspan="2">
+                            <b>ACESSO VENOSO:</b>
+                            <input type="text" id="ef_acesso" style="width:100%;">
+                        </td>
+                        <td colspan="3">
+                            <b>ABDÔMEN:</b>
+                            <input type="text" id="ef_abdomen" style="width:100%;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="4">
+                            <b>RESPIRATÓRIO:</b>
+                            <label><input type="radio" name="resp" id="rp_livres"><span class="btn-check"></span> CPP Livres</label>
+                            <label><input type="radio" name="resp" id="rp_alt"><span class="btn-check"></span> Alt:</label>
+                            <input type="text" id="ef_resp_txt" style="width:100%;">
+                        </td>
+                        <td colspan="4">
+                            <b>CARDIOVASCULAR:</b>
+                            <label><input type="radio" name="cardio" id="cd_brnf"><span class="btn-check"></span> BRNF</label>
+                            <label><input type="radio" name="cardio" id="cd_alt"><span class="btn-check"></span> Alt:</label>
+                            <input type="text" id="ef_cardio_txt" style="width:100%;">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="8">
+                            <b>MEMBROS:</b>
+                            <input type="text" id="ef_membros" style="width:100%;">
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="mobile-block" id="b5">
+            <div class="mobile-block-trigger" onclick="toggleBloco('b5')">Exames Complementares</div>
+            <div class="mobile-block-content">
+                <table class="mobile-table-to-cards">
+                    <tr>
+                        <td><b>VG:</b><input type="text" id="ex_vg" maxlength="5" class="input-3dig"></td>
+                        <td><b>HB:</b><input type="text" id="ex_hb" maxlength="5" class="input-3dig"></td>
+                        <td><b>Glicemia:</b><input type="text" id="ex_glicemia" maxlength="5" class="input-3dig"></td>
+                        <td><b>Plaquetas:</b><input type="text" id="ex_plaq" maxlength="9" class="input-5dig"></td>
+                        <td><b>TAP/RNI:</b><input type="text" id="ex_rni" maxlength="5" class="input-3dig"></td>
+                        <td><b>KPTT:</b><input type="text" id="ex_kptt" maxlength="5" class="input-3dig"></td>
+                        <td><b>Creatinina:</b><input type="text" id="ex_creat" maxlength="5" class="input-3dig"></td>
+                        <td><b>Uréia:</b><input type="text" id="ex_ureia" maxlength="5" class="input-3dig"></td>
+                    </tr>
+                    <tr><td colspan="8"><b>RX TÓRAX:</b><input type="text" id="ex_rx" style="width:100%;"></td></tr>
+                    <tr><td colspan="8"><b>ECG:</b><input type="text" id="ex_ecg" style="width:100%;"></td></tr>
+                    <tr><td colspan="8"><b>OUTROS:</b><input type="text" id="ex_outros" style="width:100%;"></td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="mobile-block" id="b6">
+            <div class="mobile-block-trigger" onclick="toggleBloco('b6')">Conduta e Conclusão</div>
+            <div class="mobile-block-content">
+                
+                <div class="jejum-container-box">
+                    <div class="form-group" style="font-size:11px; flex-wrap: wrap;">
+                        <label><input type="checkbox" id="chk_jejum"><span class="btn-check"></span> Orientado a permanecer em <span class="jejum-destaque">JEJUM PRÉ OPERATÓRIO</span> de</label>
+                        <input type="text" id="jej_solidos" maxlength="2" placeholder="  " style="width:25px; flex-grow:0; text-align:center; background:#fff; border-bottom:1.5px solid #333; font-size:13px; font-weight:900;">
+                        <label style="margin: 0 4px;"><span class="jejum-destaque">HORAS</span> PARA <span class="jejum-destaque">SÓLIDOS</span> E DE</label>
+                        <input type="text" id="jej_liquidos" maxlength="2" placeholder="  " style="width:25px; flex-grow:0; text-align:center; background:#fff; border-bottom:1.5px solid #333; font-size:13px; font-weight:900;">
+                        <label style="margin-left: 4px;"><span class="jejum-destaque">HORAS</span> PARA <span class="jejum-destaque">ÁGUA</span>.</label>
+                    </div>
+                </div>
+                <br>
+
+                <div style="border: 1px solid #cbd5e1; padding: 8px; border-radius: 6px; background: #fff; margin-bottom: 8px;">
+                    <div style="font-weight: bold; text-transform: uppercase; margin-bottom: 4px; color:#1565c0;">Conclusões</div>
+                    <div class="row" style="justify-content: space-between;">
+                        <div class="form-group">
+                            <label>LIBERADO:</label>
+                            <label><input type="radio" name="liberado" id="lb_sim"><span class="btn-check"></span> Sim</label>
+                            <label><input type="radio" name="liberado" id="lb_nao"><span class="btn-check"></span> Não</label>
+                            <label><input type="radio" name="liberado" id="lb_aguarda"><span class="btn-check"></span> Aguarda</label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="form-group">
+                            <label>ASA:</label>
+                            <label><input type="radio" name="asa" id="asa_1"><span class="btn-check"></span> I</label>
+                            <label><input type="radio" name="asa" id="asa_2"><span class="btn-check"></span> II</label>
+                            <label><input type="radio" name="asa" id="asa_3"><span class="btn-check"></span> III</label>
+                            <label><input type="radio" name="asa" id="asa_4"><span class="btn-check"></span> IV</label>
+                            <label><input type="radio" name="asa" id="asa_5"><span class="btn-check"></span> V</label>
+                            <label><input type="checkbox" id="asa_e"><span class="btn-check"></span> E</label>
+                        </div>
+                    </div>
+                    <div style="margin-top:4px;">
+                        <label style="font-weight:bold;">Recomendações:</label>
+                        <input type="text" id="concl_recom1" style="width:100%; margin-top:2px;">
+                        <input type="text" id="concl_recom2" style="width:100%; margin-top:4px;">
+                        <input type="text" id="concl_recom3" style="width:100%; margin-top:4px;">
+                    </div>
+                </div>
+
+                <div style="border: 1px solid #cbd5e1; padding: 8px; border-radius: 6px; background: #fff;">
+                    <div style="font-weight: bold; text-transform: uppercase; margin-bottom: 4px; color:#1565c0;">Observações / Conduta</div>
+                    <input type="text" id="obs1" style="width:100%; margin-top:2px;">
+                    <input type="text" id="obs2" style="width:100%; margin-top:4px;">
+                    <input type="text" id="obs3" style="width:100%; margin-top:4px;">
+                    <input type="text" id="obs4" style="width:100%; margin-top:4px;">
+                    <input type="text" id="obs5" style="width:100%; margin-top:4px;">
+                </div>
+            </div>
+        </div>
+
+        <div class="section" style="border:none; margin-top:12px; background:transparent;">
+            <div class="assinatura-container">
+                <div class="assinatura-box" style="text-align: left;">
+                    Data: <input type="text" id="data_avaliacao" style="width: 85px; text-align:center;">
+                </div>
+                
+                <div class="assinatura-box" style="min-height: 75px; position: relative;">
+                    <div class="container-carimbo-flutuante">
+                        <div id="o-carimbo">
+                            <span id="txt-nome" style="font-size: 12px; display: block;"></span>
+                            <div class="carimbo-linha-inferior">
+                                <img src="logo-anesthemed.png" class="mini-logo-real-carimbo" alt="Logo">
+                                <span id="txt-crm" style="font-size: 10px;"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <input id="busca-anestesista" class="linha-assinatura-interativa" autocomplete="off" placeholder="Digite seu nome para carimbar...">
+                    <div style="font-size: 10px; font-weight: bold; margin-top: 4px; text-transform: uppercase; color:#555;">Anestesiologista</div>
+                </div>
+                
+                <div class="assinatura-box" style="border-top: 1.2px solid #000; padding-top: 6px; margin-top:12px;">
+                    Paciente / Responsável
+                </div>
+            </div>
+        </div>
+
+        <div class="spacer-bottom"></div>
+
+        <div class="buttons">
+            <button type="button" class="btn-link" onclick="gerarLinkCompartilhar()">Copiar Link</button>
+            <button type="button" class="btn-save" onclick="exportarFichaTxt()">1. Salvar</button>
+            <button type="button" class="btn-print" id="btn-imprimir" onclick="imprimirFicha()" disabled>2. Imprimir</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    function toggleBloco(idBloco) {
+        const bloco = document.getElementById(idBloco);
+        if (bloco.classList.contains('active')) {
+            bloco.classList.remove('active');
+        } else {
+            bloco.classList.add('active');
+            setTimeout(() => { bloco.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 150);
+        }
+    }
+
+    const listaMedicamentos = [
+        "Losartana", "Atenolol", "Metoprolol", "Propranolol", "Enandril", "Captopril", "Anlodipino", 
+        "Hidroclorotiazida", "Furosemida", "Espironolactona", "Sinvastatina", "Atorvastatina", "Rosuvastatina",
+        "AAS (Aspirina)", "Clopidogrel (Plavix)", "Ticagrelor (Brilinta)", "Rivaroxabana (Xarelto)", 
+        "Apixabana (Eliquis)", "Dabigatrana (Pradaxa)", "Varfarina (Marevan)", "Metformina", "Glibenclamida", 
+        "Insulina NPH", "Insulina Regular", "Insulina Glargina (Lantus)", "Insulina Detemir (Levemir)", 
+        "Insulina Degludeca (Tresiba)", "Insulina Lispro (Humalog)", "Insulina Asparte (NovoRapid)", 
+        "Insulina Glulisina (Apidra)", "Levotiroxina (Puran/Synthroid)", "Metimazol (Tapazol)", 
+        "Propiltiomuracila (Propilracil)", "Tirzepatida (Mounjaro)", "Semaglutida (Ozempic)", 
+        "Semaglutida (Wegovy)", "Semaglutida (Rybelsus)", "Liraglutida (Saxenda)", "Liraglutida (Victoza)", 
+        "Sibutramina", "Orlistate (Xenical)", "Anfepramona", "Femproporex", "Mazindol", 
+        "Clonazepam (Rivotril)", "Alprazolam (Frontal)", "Diazepam", "Fluoxetina", "Sertralina", 
+        "Escitalopram", "Amitriptilina", "Venlafaxina (Efexor)", "Desvenlafaxina (Prastiq)", 
+        "Duloxetina (Cymbalta)", "Bupropiona (Wellbutrin)", "Pregabalina (Lyrica)", "Gabapentina",
+        "Carbamazepina (Tegretol)", "Valproato de Sódio (Depakote)", "Topiramato (Amato)", "Lamotrigina",
+        "Levodopa + Benserazida (Prolopa)", "Levodopa + Carbidopina", "Pramipexol (Sifrol)",
+        "Tansulosina (Secotex)", "Finasterida", "Dutasterida (Combodart)", "Omeprazol", "Pantoprazol", 
+        "Esomeprazol", "Ibuprofeno", "Dipirona", "Paracetamol", "Ginkgo Biloba", "Ginseng", "Valeriana", "Omega 3"
+    ];
+
+    const crmsDoGrupo = {
+        "Dr. Flavio Higashi": "CRM/PR 14146",
+        "Dr. André Trentini": "CRM/PR 17240",
+        "Dr. Márcio Hyeda": "CRM/PR 20159",
+        "Dr. Humberto Siqueira": "CRM/PR 27384",
+        "Dr. Leopoldo Papi": "CRM/PR 29466",
+        "Dr. Luca Pasqualotto": "CRM/PR 28024",
+        "Dr. Roberto Nacke": "CRM/PR 30503",
+        "Dra. Jéssica Rodrigues": "CRM/PR 37062",
+        "Dr. Marino Berardi": "CRM/PR 28112",
+        "Dra. Juliana C. Pulz": "CRM/PR 33034",
+        "Dr. Roberto Muller": "CRM/PR 33858",
+        "Dr. Felipe La Rocca": "CRM/PR 29687",
+        "Dr. Dirceu Takassi Jr.": "CRM/PR 48547",
+        "Dr. Jairo Leonel": "CRM/PR 21351",
+        "Dra. Vanessa Ingenchki": "CRM/PR 40935",
+        "Dra. Jéssica Takaki": "CRM/PR 36523",
+        "Dra. Denise Moriya": "CRM/PR 44442",
+        "Dr. Rodrigo Missio": "CRM/PR 47465"
+    };
+
+    const listaAnestesistas = Object.keys(crmsDoGrupo);
+
+    function inicializar() {
+        definirData();
+        carregarDadosUrl();
+        configurarAutocompleteEMedicamentos();
+        configurarAutocompleteCarimbo();
+        configurarDetectoresDeAlteracao();
+    }
+
+    function definirData() { 
+        if(!document.getElementById('data_avaliacao').value) {
+            document.getElementById('data_avaliacao').value = new Date().toLocaleDateString('pt-BR'); 
+        }
+    }
+
+    function obterLinkCompacto() {
+        const dados = {};
+        document.querySelectorAll('input[type="text"], input[type="number"], textarea').forEach(el => {
+            if (el.id && el.value.trim() !== "") dados[el.id] = el.value;
+        });
+        document.querySelectorAll('input[type="radio"]:checked, input[type="checkbox"]:checked').forEach(el => {
+            if (el.id) dados[el.id] = "1";
+        });
+        const params = new URLSearchParams(dados).toString();
+        const urlBase = window.location.href.split('?')[0];
+        return urlBase + "?" + params;
+    }
+
+    function gerarLinkCompartilhar() {
+        const linkCompleto = obterLinkCompacto();
+        navigator.clipboard.writeText(linkCompleto).then(() => {
+            alert("✓ Link copiado para a Área de Transferência!\nPronto para colar no WhatsApp.");
+        }).catch(err => {
+            alert("Erro ao copiar automaticamente.");
+        });
+    }
+
+    function exportarFichaTxt() {
+        const linkCompleto = obterLinkCompacto();
+        const nomePct = (document.getElementById('nome_paciente').value || "PACIENTE_SEM_NOME").toUpperCase();
+        const cpfPct = document.getElementById('cpf_paciente').value || "SEM_CPF";
+        const conteudoTxt = "==================================================\nANESTHEMED - FICHA DIGITAL DE AVALIACAO PRE-ANESTESICA\n==================================================\n\nPaciente: " + nomePct + "\nCPF: " + cpfPct + "\nData: " + document.getElementById('data_avaliacao').value + "\n\nPARA REABRIR ESTA FICHA INTEGRALMENTE PREENCHIDA, COPIE O LINK ABAIXO E COLE NO SEU NAVEGADOR:\n\n" + linkCompleto + "\n\n==================================================";
+        const blob = new Blob([conteudoTxt], { type: "text/plain;charset=utf-8" });
+        const linkDownload = document.createElement("a");
+        const nomeArquivoClean = nomePct.replace(/\s+/g, '_');
+        linkDownload.download = "AVAL_" + nomeArquivoClean + "_" + cpfPct + ".txt";
+        linkDownload.href = window.URL.createObjectURL(blob);
+        linkDownload.style.display = "none";
+        document.body.appendChild(linkDownload);
+        linkDownload.click();
+        document.body.removeChild(linkDownload);
+        navigator.clipboard.writeText(linkCompleto).then(() => {
+            alert("✓ Ficha digital baixada com sucesso!\n\n💡 O link real e completo desta ficha também foi COPIADO automaticamente.");
+        }).catch(() => {
+            alert("Ficha baixada com sucesso!");
+        });
+        document.getElementById('btn-imprimir').removeAttribute('disabled');
+    }
+
+    function imprimirFicha() {
+        const nome = document.getElementById('nome_paciente').value || "PACIENTE";
+        document.title = "AVAL_" + nome.replace(/\s+/g, '_').toUpperCase();
+        window.print();
+    }
+
+    function travarImpressao() {
+        document.getElementById('btn-imprimir').setAttribute('disabled', 'true');
+    }
+
+    function configurarDetectoresDeAlteracao() {
+        document.querySelectorAll('input, textarea').forEach(el => {
+            if(el.id !== "busca-anestesista") {
+                el.addEventListener('input', travarImpressao);
+                el.addEventListener('change', travarImpressao);
+            }
+        });
+    }
+
+    function configurarAutocompleteEMedicamentos() {
+        const inputs = document.querySelectorAll('.med-input');
+        inputs.forEach((input, index) => {
+            autocomplete(input, listaMedicamentos, inputs, index);
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    const listaAberta = input.parentNode.querySelector('.autocomplete-items');
+                    if (!listaAberta) {
+                        e.preventDefault(); 
+                        const proximo = inputs[index + 1];
+                        if (proximo) proximo.focus();
+                    }
+                }
+            });
+        });
+    }
+
+    function autocomplete(inp, arr, inputs, index) {
+        let currentFocus;
+        inp.addEventListener("input", function(e) {
+            let a, b, i, val = this.value;
+            closeAllLists();
+            if (!val) { return false; }
+            currentFocus = -1;
+            a = document.createElement("DIV");
+            a.setAttribute("id", this.id + "autocomplete-list");
+            a.setAttribute("class", "autocomplete-items");
+            this.parentNode.appendChild(a);
+            let count = 0;
+            for (i = 0; i < arr.length; i++) {
+                if (arr[i].toUpperCase().includes(val.toUpperCase())) {
+                    if(count >= 5) break; 
+                    b = document.createElement("DIV");
+                    let idx = arr[i].toUpperCase().indexOf(val.toUpperCase());
+                    b.innerHTML = arr[i].substr(0, idx) + "<strong>" + arr[i].substr(idx, val.length) + "</strong>" + arr[i].substr(idx + val.length);
+                    b.innerHTML += "<input type='hidden' value='" + arr[i] + "'>";
+                    b.addEventListener("click", function(e) {
+                        inp.value = this.getElementsByTagName("input")[0].value;
+                        closeAllLists();
+                        travarImpressao();
+                        const proximo = inputs[index + 1];
+                        if (proximo) proximo.focus();
+                    });
+                    a.appendChild(b);
+                    count++;
+                }
+            }
+        });
+        inp.addEventListener("keydown", function(e) {
+            let x = document.getElementById(this.id + "autocomplete-list");
+            if (x) x = x.getElementsByTagName("div");
+            if (e.keyCode == 40) { currentFocus++; addActive(x); } 
+            else if (e.keyCode == 38) { currentFocus--; addActive(x); } 
+            else if (e.keyCode == 13) { if (currentFocus > -1) { e.preventDefault(); if (x) x[currentFocus].click(); } }
+        });
+        function addActive(x) {
+            if (!x) return false; removeActive(x);
+            if (currentFocus >= x.length) currentFocus = 0;
+            if (currentFocus < 0) currentFocus = (x.length - 1);
+            x[currentFocus].classList.add("autocomplete-active");
+        }
+        function removeActive(x) { for (let i = 0; i < x.length; i++) x[i].classList.remove("autocomplete-active"); }
+        function closeAllLists(elmnt) {
+            const x = document.getElementsByClassName("autocomplete-items");
+            for (let i = 0; i < x.length; i++) { if (elmnt != x[i] && elmnt != inp) x[i].parentNode.removeChild(x[i]); }
+        }
+        document.addEventListener("click", function (e) { closeAllLists(e.target); });
+    }
+
+    function comentarioAutomatico(numero, isChecked) {
+        const txtArea = document.getElementById('comentarios_dados');
+        let texto = txtArea.value;
+        const marcador = numero + ". ";
+        if (isChecked) {
+            if (!texto.includes(marcador)) {
+                if (texto.trim() !== "" && !texto.endsWith("\n")) texto += "\n";
+                texto += marcador; txtArea.value = texto;
+            }
+            txtArea.focus();
+            const comprimento = txtArea.value.length;
+            txtArea.setSelectionRange(comprimento, comprimento);
+        } else {
+            const linhas = texto.split("\n");
+            txtArea.value = linhas.filter(linha => !linha.startsWith(marcador)).join("\n");
+        }
+        travarImpressao();
+    }
+
+    function configurarAutocompleteCarimbo() {
+        const inp = document.getElementById("busca-anestesista");
+        let currentFocus = -1;
+        inp.addEventListener("input", function(e) {
+            let a, b, i, val = this.value;
+            closeAllCarimboLists();
+            if (!val) { esconderCarimbo(); return false; }
+            currentFocus = -1;
+            a = document.createElement("DIV");
+            a.setAttribute("id", this.id + "autocomplete-list");
+            a.setAttribute("class", "autocomplete-carimbo-items");
+            this.parentNode.appendChild(a);
+            for (i = 0; i < listaAnestesistas.length; i++) {
+                if (listaAnestesistas[i].toUpperCase().includes(val.toUpperCase())) {
+                    b = document.createElement("DIV");
+                    let idx = listaAnestesistas[i].toUpperCase().indexOf(val.toUpperCase());
+                    b.innerHTML = listaAnestesistas[i].substr(0, idx) + "<strong>" + listaAnestesistas[i].substr(idx, val.length) + "</strong>" + listaAnestesistas[i].substr(idx + val.length);
+                    b.innerHTML += "<input type='hidden' value='" + listaAnestesistas[i] + "'>";
+                    b.addEventListener("click", function(e) {
+                        inp.value = this.getElementsByTagName("input")[0].value;
+                        closeAllCarimboLists();
+                        aplicarCarimbo(inp.value);
+                    });
+                    a.appendChild(b);
+                }
+            }
+        });
+        inp.addEventListener("keydown", function(e) {
+            let x = document.getElementById(this.id + "autocomplete-list");
+            if (x) x = x.getElementsByTagName("div");
+            if (e.keyCode == 40) { currentFocus++; addActive(x); }
+            else if (e.keyCode == 38) { currentFocus--; addActive(x); }
+            else if (e.keyCode == 13) { if (currentFocus > -1) { e.preventDefault(); if (x) x[currentFocus].click(); } }
+        });
+        function addActive(x) {
+            if (!x) return false;
+            removeActive(x);
+            if (currentFocus >= x.length) currentFocus = 0;
+            if (currentFocus < 0) currentFocus = (x.length - 1);
+            x[currentFocus].classList.add("autocomplete-carimbo-active");
+        }
+        function removeActive(x) { for (let i = 0; i < x.length; i++) x[i].classList.remove("autocomplete-carimbo-active"); }
+        document.addEventListener("click", function (e) { closeAllCarimboLists(e.target); });
+    }
+
+    function closeAllCarimboLists(elmnt) {
+        const inp = document.getElementById("busca-anestesista");
+        const x = document.getElementsByClassName("autocomplete-carimbo-items");
+        for (let i = 0; i < x.length; i++) { if (elmnt != x[i] && elmnt != inp) x[i].parentNode.removeChild(x[i]); }
+    }
+
+    function aplicarCarimbo(nomeSelecionado) {
+        const crmEncontrado = crmsDoGrupo[nomeSelecionado];
+        if (crmEncontrado) {
+            document.getElementById('txt-nome').innerText = nomeSelecionado;
+            document.getElementById('txt-crm').innerText = crmEncontrado;
+            document.getElementById('o-carimbo').style.display = 'block';
+            travarImpressao();
+        } else {
+            esconderCarimbo();
+        }
+    }
+
+    function esconderCarimbo() {
+        document.getElementById('o-carimbo').style.display = 'none';
+        travarImpressao();
+    }
+
+    document.getElementById('avaliacao-form').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && e.target.tagName === 'INPUT' && !e.target.classList.contains('med-input') && e.target.id !== 'busca-anestesista') {
+            e.preventDefault();
+        }
+    });
+
+    function carregarDadosUrl() {
+        const p = new URLSearchParams(window.location.search);
+        p.forEach((valor, chave) => {
+            const el = document.getElementById(chave);
+            if (el) {
+                if (el.type === "radio" || el.type === "checkbox") el.checked = (valor === "1");
+                else el.value = valor;
+            }
+        });
+        const anestesistaSalvo = p.get('busca-anestesista');
+        if(anestesistaSalvo) { aplicarCarimbo(anestesistaSalvo); }
+    }
+</script>
+</body>
+</html>
