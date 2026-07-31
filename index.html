@@ -516,7 +516,7 @@
                             </div>
                         </div>
                     </div>
-                    <input id="busca-anestesista" class="linha-assinatura-interativa" autocomplete="off" placeholder="Digite seu nome para carimbar...">
+                    <input id="busca-anestesista" type="text" class="linha-assinatura-interativa" autocomplete="off" placeholder="Digite seu nome para carimbar...">
                     <div style="font-size: 10px; font-weight: bold; margin-top: 4px; text-transform: uppercase; color:#555;">Anestesiologista</div>
                 </div>
                 
@@ -798,6 +798,19 @@
         }
         function removeActive(x) { for (let i = 0; i < x.length; i++) x[i].classList.remove("autocomplete-carimbo-active"); }
         document.addEventListener("click", function (e) { closeAllCarimboLists(e.target); });
+        inp.addEventListener("blur", function() {
+            const valorDigitado = this.value.trim();
+            if (!valorDigitado) return;
+            if (crmsDoGrupo[valorDigitado]) {
+                aplicarCarimbo(valorDigitado);
+                return;
+            }
+            const encontrado = listaAnestesistas.find(nome => nome.toUpperCase() === valorDigitado.toUpperCase());
+            if (encontrado) {
+                this.value = encontrado;
+                aplicarCarimbo(encontrado);
+            }
+        });
     }
 
     function closeAllCarimboLists(elmnt) {
