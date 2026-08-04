@@ -783,6 +783,17 @@
         }
     }
 
+    // Remove acentos e normaliza para minúsculas, para comparação tolerante
+    // a diferenças de digitação (ex: "Joao" encontra "João").
+    function normalizarTexto(txt) {
+        return (txt || '')
+            .toString()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim();
+    }
+
     async function buscarFichaFirestore() {
         if (!window.db || !window._fbFns) {
             alert('Firebase ainda não está configurado. Cole suas credenciais no topo do arquivo HTML.');
@@ -796,35 +807,34 @@
         }
 
         try {
-            const { collection, query, where, orderBy, limit, getDocs } = window._fbFns;
+            const { collection, query, limit, getDocs } = window._fbFns;
             const colRef = collection(window.db, 'avaliacoes_pre_anestesicas');
 
+            // Busca ampla (até 500 fichas) e filtra no próprio navegador por
+            // "contém" (não só "começa com"), sem depender de nenhum campo
+            // auxiliar específico — assim encontra fichas salvas por
+            // qualquer versão do sistema (celular, Cambuí, Inovare etc.),
+            // mesmo as mais antigas.
+            const q = query(colRef, limit(500));
+            const snap = await getDocs(q);
+
+            const termoNormalizado = normalizarTexto(termo);
             const somenteDigitos = termo.replace(/\D/g, '');
-            const pareceCpf = somenteDigitos.length >= 3 && somenteDigitos.length === termo.replace(/\s/g, '').length;
 
-            let snap;
-            if (pareceCpf) {
-                const q = query(colRef, where('cpf_paciente', '==', termo), limit(15));
-                snap = await getDocs(q);
-            } else {
-                const termoBusca = termo.toLowerCase();
-                const q = query(
-                    colRef,
-                    orderBy('nome_busca'),
-                    where('nome_busca', '>=', termoBusca),
-                    where('nome_busca', '<=', termoBusca + '\uf8ff'),
-                    limit(15)
-                );
-                snap = await getDocs(q);
-            }
+            const resultados = [];
+            snap.forEach(d => {
+                const dados = d.data();
+                const nome = normalizarTexto(dados.nome_paciente || '');
+                const cpf = (dados.cpf_paciente || '').replace(/\D/g, '');
+                const bateNome = termoNormalizado.length >= 2 && nome.includes(termoNormalizado);
+                const bateCpf = somenteDigitos.length >= 3 && cpf.length > 0 && cpf.includes(somenteDigitos);
+                if (bateNome || bateCpf) resultados.push({ id: d.id, ...dados });
+            });
 
-            if (snap.empty) {
+            if (resultados.length === 0) {
                 alert('Nenhuma ficha encontrada para: ' + termo);
                 return;
             }
-
-            const resultados = [];
-            snap.forEach(d => resultados.push({ id: d.id, ...d.data() }));
 
             if (resultados.length === 1) {
                 preencherFormularioComDados(resultados[0]);
