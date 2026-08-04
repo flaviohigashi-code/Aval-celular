@@ -41,7 +41,8 @@
             padding-bottom: 4px;
             margin-bottom: 10px;
         }
-        .header-logo img { display: block; max-width: 120px; height: auto; }
+        .header-logo img { display: block; max-width: 160px; height: auto; }
+        .print-logo-center { display: none; }
         .header-title h2 { margin: 0; font-size: 13px; letter-spacing: 0.5px; color: #1a237e; }
         .header-contact { text-align: right; font-weight: bold; line-height: 1.1; }
         .header-contact .loc-name { font-size: 9px; text-transform: uppercase; display: block; }
@@ -219,8 +220,11 @@
         @media print {
             body { background-color: #fff; padding: 0; margin: 0; font-size: 10px; line-height: 1.05; }
             .container { border: none; box-shadow: none; width: 100%; padding: 0; margin: 0; max-width: 100%; }
-            .spacer-bottom, .buttons, .autocomplete-items, .autocomplete-carimbo-items { display: none !important; }
-            
+            .spacer-bottom, .buttons, .autocomplete-items, .autocomplete-carimbo-items, .no-print { display: none !important; }
+
+            .print-logo-center { display: block !important; text-align: center !important; margin-bottom: 4px !important; }
+            .print-logo-center img { display: inline-block !important; max-width: 130px !important; height: auto !important; }
+
             .mobile-block { border: 1px solid #000 !important; margin-bottom: 2px !important; border-radius: 0 !important; overflow: visible !important; }
             .mobile-block-trigger { background: #f2f2f2 !important; color: #000 !important; padding: 1px 2px !important; font-size: 9px !important; border-bottom: 1px solid #000 !important; justify-content: center !important; }
             .mobile-block-trigger::after { display: none !important; }
@@ -264,16 +268,65 @@
             html, body { height: 99%; overflow: hidden; page-break-inside: avoid; }
         }
     </style>
+
+
+<!-- ============================================================ -->
+<!-- 🔥 INTEGRAÇÃO FIREBASE / FIRESTORE — ANESTHEMED (MOBILE)       -->
+<!-- ============================================================ -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+        getFirestore, collection, addDoc, doc, setDoc,
+        getDocs, query, where, orderBy, limit, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // ============================================================
+    // 🔑 COLE AQUI AS SUAS CREDENCIAIS DO FIREBASE (Firebase Console
+    //     > Configurações do projeto > Seus apps > Config do SDK)
+    // ============================================================
+    const firebaseConfig = {
+        apiKey: "COLE_AQUI_SUA_API_KEY",
+        authDomain: "anesthemed-av-pre-anestesica.firebaseapp.com",
+        projectId: "anesthemed-av-pre-anestesica",
+        storageBucket: "anesthemed-av-pre-anestesica.appspot.com",
+        messagingSenderId: "COLE_AQUI_SEU_SENDER_ID",
+        appId: "COLE_AQUI_SEU_APP_ID"
+    };
+    // ============================================================
+
+    try {
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        window.db = db;
+        window._fbFns = { collection, addDoc, doc, setDoc, getDocs, query, where, orderBy, limit, serverTimestamp };
+        window._firebaseReady = true;
+    } catch (e) {
+        console.error("Falha ao iniciar o Firebase — verifique as credenciais coladas acima.", e);
+        window._firebaseReady = false;
+    }
+</script>
+<!-- ============================================================ -->
+
 </head>
 <body onload="inicializar()">
 
 <div class="container">
     <form id="avaliacao-form" autocomplete="off">
         
+        <div class="print-logo-center" style="display:none;">
+            <img src="logo-anesthemed.png" alt="Logo AnestheMed">
+        </div>
+
         <div class="header">
             <div class="header-logo"><img src="logo-anesthemed.png" alt="Logo AnestheMed"></div>
             <div class="header-title"><h2>AVALIAÇÃO PRÉ ANESTÉSICA</h2></div>
-            <div class="header-contact"><span class="loc-name">Inovare</span><span class="phone-num">(42) 3026-2640</span></div>
+            <div class="header-contact"><span class="loc-name">AnestheMed</span><span class="phone-num">(42) 3026-2640</span></div>
+        </div>
+
+        <div class="no-print" style="display:flex; align-items:center; gap:6px; background:#f0f4f8; border:1px solid #cdd8e3; border-radius:6px; padding:8px 10px; margin-bottom:8px;">
+            <input type="text" id="busca_ficha_termo" placeholder="Buscar por nome ou CPF..." style="flex:1; padding:6px; font-size:12px; border:1px solid #aaa; border-radius:4px;">
+            <button type="button" onclick="buscarFichaFirestore()" style="padding:8px 10px; font-size:11px; font-weight:bold; background:#1565c0; color:#fff; border:none; border-radius:4px; cursor:pointer; white-space:nowrap;">🔎 Buscar</button>
+            <button type="button" onclick="novaFichaLimpar()" title="Limpar formulário para nova ficha" style="padding:8px 10px; font-size:11px; font-weight:bold; background:#6d6d6d; color:#fff; border:none; border-radius:4px; cursor:pointer; white-space:nowrap;">🗑️</button>
         </div>
 
         <div class="mobile-block active" id="b1">
@@ -619,14 +672,200 @@
 
     function gerarLinkCompartilhar() {
         const linkCompleto = obterLinkCompacto();
-        navigator.clipboard.writeText(linkCompleto).then(() => {
-            alert("✓ Link copiado para a Área de Transferência!\nPronto para colar no WhatsApp.");
-        }).catch(err => {
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(linkCompleto).then(() => {
+                    alert("✓ Link copiado para a Área de Transferência!\nPronto para colar no WhatsApp.");
+                }).catch(err => {
+                    alert("Erro ao copiar automaticamente.");
+                });
+            } else {
+                alert("Cópia automática indisponível neste modo (abra pelo link https:// do GitHub Pages).");
+            }
+        } catch (e) {
+            console.error('Erro ao copiar link:', e);
             alert("Erro ao copiar automaticamente.");
+        }
+    }
+
+    // ================================================================
+    // 🔥 FIRESTORE — Coleta, salvamento, busca e aviso de status
+    // ================================================================
+
+    function coletarDadosFormularioParaFirestore() {
+        const dados = {};
+        const form = document.getElementById('avaliacao-form');
+        if (!form) return dados;
+
+        form.querySelectorAll('input[type="text"], input[type="number"], textarea').forEach(el => {
+            if (el.id) dados[el.id] = el.value || '';
         });
+
+        form.querySelectorAll('input[type="radio"], input[type="checkbox"]').forEach(el => {
+            if (el.id) dados[el.id] = !!el.checked;
+        });
+
+        dados['nome_busca'] = (dados['nome_paciente'] || '').toLowerCase().trim();
+
+        return dados;
+    }
+
+    function mostrarAvisoFirestore(mensagem, erro) {
+        let aviso = document.getElementById('aviso-firestore');
+        if (!aviso) {
+            aviso = document.createElement('div');
+            aviso.id = 'aviso-firestore';
+            aviso.className = 'no-print';
+            // pointer-events:none garante que esse aviso NUNCA bloqueia
+            // cliques em botões que estejam por baixo dele (ex: Imprimir).
+            aviso.style.cssText = 'position:fixed; bottom:70px; right:12px; left:12px; z-index:99999; padding:10px 14px; border-radius:6px; font-family:Arial,sans-serif; font-size:13px; font-weight:bold; color:#fff; box-shadow:0 2px 8px rgba(0,0,0,.25); transition:opacity .3s; pointer-events:none; visibility:hidden; opacity:0; text-align:center;';
+            document.body.appendChild(aviso);
+        }
+        aviso.style.background = erro ? '#c62828' : '#2e7d32';
+        aviso.textContent = mensagem;
+        aviso.style.visibility = 'visible';
+        aviso.style.opacity = '1';
+        clearTimeout(window._avisoFirestoreTimeout);
+        window._avisoFirestoreTimeout = setTimeout(() => {
+            aviso.style.opacity = '0';
+            aviso.style.visibility = 'hidden';
+        }, 4500);
+    }
+
+    async function salvarFichaNoFirestore() {
+        if (!window.db || !window._fbFns) {
+            console.warn('Firebase não configurado — ficha salva apenas localmente.');
+            mostrarAvisoFirestore('⚠ Firebase não configurado. Ficha salva apenas localmente (.txt).', true);
+            return;
+        }
+        try {
+            const { collection, addDoc, doc, setDoc, serverTimestamp } = window._fbFns;
+            const dados = coletarDadosFormularioParaFirestore();
+            dados.tipoFicha = 'Inovare (Mobile)';
+            dados.unidade = 'Inovare';
+            dados.atualizadoEm = serverTimestamp();
+
+            if (window._fichaDocId) {
+                const refDoc = doc(window.db, 'avaliacoes_pre_anestesicas', window._fichaDocId);
+                await setDoc(refDoc, dados, { merge: true });
+            } else {
+                dados.criadoEm = serverTimestamp();
+                const colRef = collection(window.db, 'avaliacoes_pre_anestesicas');
+                const novoDoc = await addDoc(colRef, dados);
+                window._fichaDocId = novoDoc.id;
+            }
+
+            mostrarAvisoFirestore('✓ Ficha salva na nuvem (Firestore) com sucesso!');
+        } catch (e) {
+            console.error('Erro ao salvar ficha no Firestore:', e);
+            mostrarAvisoFirestore('⚠ Não foi possível salvar na nuvem agora. O .txt local foi salvo normalmente.', true);
+        }
+    }
+
+    function preencherFormularioComDados(dados) {
+        window._fichaDocId = dados.id || null;
+        const camposIgnorados = ['id', 'tipoFicha', 'unidade', 'criadoEm', 'atualizadoEm', 'nome_busca'];
+
+        Object.keys(dados).forEach(chave => {
+            if (camposIgnorados.includes(chave)) return;
+            const el = document.getElementById(chave);
+            if (!el) return;
+            if (el.type === 'radio' || el.type === 'checkbox') {
+                el.checked = !!dados[chave];
+            } else {
+                el.value = dados[chave] || '';
+            }
+        });
+
+        const anestSalvo = dados['busca-anestesista'];
+        if (anestSalvo && typeof aplicarCarimbo === 'function') {
+            aplicarCarimbo(anestSalvo);
+        }
+    }
+
+    async function buscarFichaFirestore() {
+        if (!window.db || !window._fbFns) {
+            alert('Firebase ainda não está configurado. Cole suas credenciais no topo do arquivo HTML.');
+            return;
+        }
+        const campoTermo = document.getElementById('busca_ficha_termo');
+        const termo = (campoTermo ? campoTermo.value : '').trim();
+        if (!termo) {
+            alert('Digite um nome ou CPF para buscar.');
+            return;
+        }
+
+        try {
+            const { collection, query, where, orderBy, limit, getDocs } = window._fbFns;
+            const colRef = collection(window.db, 'avaliacoes_pre_anestesicas');
+
+            const somenteDigitos = termo.replace(/\D/g, '');
+            const pareceCpf = somenteDigitos.length >= 3 && somenteDigitos.length === termo.replace(/\s/g, '').length;
+
+            let snap;
+            if (pareceCpf) {
+                const q = query(colRef, where('cpf_paciente', '==', termo), limit(15));
+                snap = await getDocs(q);
+            } else {
+                const termoBusca = termo.toLowerCase();
+                const q = query(
+                    colRef,
+                    orderBy('nome_busca'),
+                    where('nome_busca', '>=', termoBusca),
+                    where('nome_busca', '<=', termoBusca + '\uf8ff'),
+                    limit(15)
+                );
+                snap = await getDocs(q);
+            }
+
+            if (snap.empty) {
+                alert('Nenhuma ficha encontrada para: ' + termo);
+                return;
+            }
+
+            const resultados = [];
+            snap.forEach(d => resultados.push({ id: d.id, ...d.data() }));
+
+            if (resultados.length === 1) {
+                preencherFormularioComDados(resultados[0]);
+                alert('✓ Ficha de ' + (resultados[0].nome_paciente || '(sem nome)') + ' carregada.');
+                return;
+            }
+
+            let msg = 'Foram encontradas ' + resultados.length + ' fichas. Digite o número da ficha desejada:\n\n';
+            resultados.forEach((r, i) => {
+                msg += (i + 1) + '. ' + (r.nome_paciente || '(sem nome)') + ' — ' + (r.data_avaliacao || 'sem data') + '\n';
+            });
+            const escolha = prompt(msg);
+            const idx = parseInt(escolha, 10) - 1;
+            if (!isNaN(idx) && resultados[idx]) {
+                preencherFormularioComDados(resultados[idx]);
+                alert('✓ Ficha de ' + (resultados[idx].nome_paciente || '(sem nome)') + ' carregada.');
+            }
+        } catch (e) {
+            console.error('Erro ao buscar ficha no Firestore:', e);
+            alert('Erro ao buscar ficha. Verifique sua conexão ou as credenciais do Firebase (veja o console para detalhes).');
+        }
+    }
+
+    function novaFichaLimpar() {
+        if (!confirm('Limpar todos os campos para iniciar uma nova ficha?\n\n(Certifique-se de já ter salvo/impresso a ficha atual.)')) return;
+        const form = document.getElementById('avaliacao-form');
+        if (form) form.reset();
+        window._fichaDocId = null;
+        if (typeof definirData === 'function') definirData();
+        const btnImprimir = document.getElementById('btn-imprimir');
+        if (btnImprimir) btnImprimir.setAttribute('disabled', 'disabled');
+        const carimbo = document.getElementById('o-carimbo');
+        if (carimbo) carimbo.style.display = 'none';
+        mostrarAvisoFirestore('✓ Formulário limpo. Pronto para uma nova ficha.');
     }
 
     function exportarFichaTxt() {
+        // Salva silenciosamente no Firestore em paralelo — nunca bloqueia
+        // o download do .txt nem a liberação do botão Imprimir, mesmo se falhar.
+        salvarFichaNoFirestore();
+
         const linkCompleto = obterLinkCompacto();
         const nomePct = (document.getElementById('nome_paciente').value || "PACIENTE_SEM_NOME").toUpperCase();
         const cpfPct = document.getElementById('cpf_paciente').value || "SEM_CPF";
@@ -640,11 +879,24 @@
         document.body.appendChild(linkDownload);
         linkDownload.click();
         document.body.removeChild(linkDownload);
-        navigator.clipboard.writeText(linkCompleto).then(() => {
-            alert("✓ Ficha digital baixada com sucesso!\n\n💡 O link real e completo desta ficha também foi COPIADO automaticamente.");
-        }).catch(() => {
+        // O botão de impressão precisa ser liberado sempre, mesmo que a
+        // cópia para a área de transferência falhe (ex: ao abrir o arquivo
+        // localmente via file:// em vez de https://, onde o navegador
+        // bloqueia o navigator.clipboard e travava o botão "Imprimir").
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(linkCompleto).then(() => {
+                    alert("✓ Ficha digital baixada com sucesso!\n\n💡 O link real e completo desta ficha também foi COPIADO automaticamente.");
+                }).catch(() => {
+                    alert("Ficha baixada com sucesso!");
+                });
+            } else {
+                alert("Ficha baixada com sucesso!\n\n(A cópia automática do link não está disponível neste modo — abra o arquivo pelo endereço https:// do GitHub Pages para usar essa função.)");
+            }
+        } catch (e) {
+            console.error('Erro ao copiar link para a área de transferência:', e);
             alert("Ficha baixada com sucesso!");
-        });
+        }
         document.getElementById('btn-imprimir').removeAttribute('disabled');
     }
 
