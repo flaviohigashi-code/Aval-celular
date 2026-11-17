@@ -265,7 +265,23 @@
             .linha-assinatura-interativa { border-bottom: 1.2px solid #000 !important; color: transparent !important; background: transparent !important; padding: 1px 0px !important; }
             #o-carimbo { display: none; bottom: -6px !important; left: 50% !important; transform: translate(-50%, 0) rotate(-1.5deg) !important; }
 
-            html, body { height: 99%; overflow: hidden; page-break-inside: avoid; }
+            /* Largura fixa de A4 útil (210mm - 2x4mm de margem), independente da tela do celular.
+               O "zoom" para caber numa folha é calculado pelo JS em imprimirFicha(). */
+            .container { width: 202mm !important; max-width: none !important; }
+            .container, .mobile-block, .assinatura-container { page-break-inside: avoid; }
+
+            /* --- COMPACTAÇÃO DE ESPAÇOS EM BRANCO (PDF FOLHA ÚNICA) --- */
+            .print-logo-center { display: none !important; } /* logo duplicado: já existe no cabeçalho */
+            .header { margin-bottom: 2px !important; padding-bottom: 1px !important; border-bottom-width: 1.5px !important; }
+            .header-logo img { max-width: 105px !important; }
+            .header-title h2 { font-size: 12px !important; }
+            .row { margin-bottom: 1px !important; gap: 4px !important; }
+            .jejum-container-box + br { display: none !important; }
+            #b6 .mobile-block-content > div[style] { padding: 1px 4px !important; margin: 2px 0 !important; border-radius: 0 !important; }
+            #b6 .mobile-block-content > div[style] > div:first-child { margin-bottom: 1px !important; }
+            #concl_recom1, #concl_recom2, #concl_recom3, #obs1, #obs2 { margin-top: 1px !important; }
+            .section { margin-top: 2px !important; }
+            .assinatura-container { margin-top: 26px !important; }
         }
     </style>
 
@@ -649,6 +665,9 @@
         configurarAutocompleteEMedicamentos();
         configurarAutocompleteCarimbo();
         configurarDetectoresDeAlteracao();
+        const taComent = document.getElementById('comentarios_dados');
+        taComent.addEventListener('input', autoAjustarComentarios);
+        autoAjustarComentarios();
     }
 
     function definirData() { 
@@ -777,6 +796,7 @@
             }
         });
 
+        autoAjustarComentarios();
         const anestSalvo = dados['busca-anestesista'];
         if (anestSalvo && typeof aplicarCarimbo === 'function') {
             aplicarCarimbo(anestSalvo);
@@ -862,6 +882,7 @@
         if (!confirm('Limpar todos os campos para iniciar uma nova ficha?\n\n(Certifique-se de já ter salvo/impresso a ficha atual.)')) return;
         const form = document.getElementById('avaliacao-form');
         if (form) form.reset();
+        autoAjustarComentarios();
         window._fichaDocId = null;
         if (typeof definirData === 'function') definirData();
         const btnImprimir = document.getElementById('btn-imprimir');
@@ -910,10 +931,90 @@
         document.getElementById('btn-imprimir').removeAttribute('disabled');
     }
 
+    // Mede a altura da ficha já com o layout de impressão (A4) aplicado na tela,
+    // e devolve a escala necessária para caber em UMA folha.
+    function calcularEscalaImpressao() {
+        const ALTURA_UTIL_PX = (297 - 4) * 3.7795 * 0.97; // A4 menos margens do @page, com folga de 3%
+        let regras = '';
+        for (const folha of document.styleSheets) {
+            let lista;
+            try { lista = folha.cssRules; } catch (e) { continue; }
+            for (const r of lista) {
+                if (r.type === CSSRule.MEDIA_RULE && r.media.mediaText.indexOf('print') !== -1) {
+                    for (const sub of r.cssRules) regras += sub.cssText + '\n';
+                }
+            }
+        }
+        const sim = document.createElement('style');
+        sim.textContent = regras + '\n.container { zoom: 1 !important; }';
+        document.head.appendChild(sim);
+
+        // Caixa de comentários: no PDF ela cresce até mostrar TODO o texto (mínimo 4 linhas).
+        // O zoom muda a quebra das linhas, então medimos em rodadas: aplica o zoom,
+        // mede o texto, recalcula o zoom... até estabilizar.
+        const ta = document.getElementById('comentarios_dados');
+        const container = document.querySelector('.container');
+        const alturaTelaOriginal = ta.style.height;
+        const FOLGA_PX = 14; // ~1 linha de segurança
+        let escala = 1;
+        let alturaComentariosPrint = 0;
+        for (let rodada = 0; rodada < 4; rodada++) {
+            container.style.setProperty('zoom', escala, 'important');
+            ta.style.height = 'auto';
+            alturaComentariosPrint = ta.scrollHeight + 2 + FOLGA_PX;
+            ta.style.height = alturaComentariosPrint + 'px';
+            container.style.setProperty('zoom', '1', 'important');
+            const altura = container.getBoundingClientRect().height;
+            const nova = altura ? Math.min(1, ALTURA_UTIL_PX / altura) : 1;
+            if (Math.abs(nova - escala) < 0.005) { escala = nova; break; }
+            escala = nova;
+        }
+
+        container.style.removeProperty('zoom');
+        ta.style.height = alturaTelaOriginal;
+        sim.remove();
+        return { escala: escala, alturaComentarios: alturaComentariosPrint };
+    }
+
+    // Na tela: a caixa de comentários cresce conforme o texto.
+    function autoAjustarComentarios() {
+        const ta = document.getElementById('comentarios_dados');
+        if (!ta) return;
+        ta.style.height = 'auto';
+        ta.style.height = (ta.scrollHeight + 2) + 'px';
+    }
+
     function imprimirFicha() {
         const nome = document.getElementById('nome_paciente').value || "PACIENTE";
         document.title = "AVAL_" + nome.replace(/\s+/g, '_').toUpperCase();
-        window.print();
+
+        // No celular o navegador imprime na largura da tela; forçamos largura de "desktop"
+        // durante a impressão e restauramos depois.
+        const vp = document.querySelector('meta[name="viewport"]');
+        const vpOriginal = vp ? vp.getAttribute('content') : null;
+        if (vp) vp.setAttribute('content', 'width=820');
+
+        const medida = calcularEscalaImpressao();
+        let estiloEscala = document.getElementById('estilo-escala-impressao');
+        if (!estiloEscala) {
+            estiloEscala = document.createElement('style');
+            estiloEscala.id = 'estilo-escala-impressao';
+            document.head.appendChild(estiloEscala);
+        }
+        estiloEscala.textContent = '@media print { .container { zoom: ' + medida.escala.toFixed(3) + '; } ' +
+            '#comentarios_dados { height: ' + medida.alturaComentarios + 'px !important; overflow: hidden !important; } }';
+
+        let restaurado = false;
+        function restaurar() {
+            if (restaurado) return;
+            restaurado = true;
+            if (vp && vpOriginal) vp.setAttribute('content', vpOriginal);
+        }
+        window.addEventListener('afterprint', restaurar, { once: true });
+        // Segurança: se o navegador não disparar "afterprint", restaura no próximo toque.
+        setTimeout(() => { document.addEventListener('touchstart', restaurar, { once: true }); }, 1500);
+
+        setTimeout(() => { window.print(); }, 300);
     }
 
     function travarImpressao() {
@@ -1014,6 +1115,7 @@
             const linhas = texto.split("\n");
             txtArea.value = linhas.filter(linha => !linha.startsWith(marcador)).join("\n");
         }
+        autoAjustarComentarios();
         travarImpressao();
     }
 
